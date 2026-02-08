@@ -1,0 +1,139 @@
+
+.sidebar {
+  width: 290px;
+  position : fixed ;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.35s ease;
+}
+
+.sidebar.collapsed {
+  width: 90px;
+}
+
+/* HEADER */
+.sidebar-header {
+  padding: 28px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* TOGGLE BUTTON */
+.toggle-btn {
+  border: none;
+  background: #eef2ff;
+  color: #1e40af;
+  border-radius: 10px;
+  padding: 8px 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.toggle-btn:hover {
+  background: #e0e7ff;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: #475569;
+  font-size: 14px;
+  transition: all 0.25s ease;
+}
+
+
+.icon {
+  font-size: 19px;
+  opacity: 0.75;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* LABEL */
+.label {
+  white-space: nowrap;
+  transition: opacity 0.25s ease;
+}
+
+/* HIDE TEXT WHEN COLLAPSED */
+.sidebar.collapsed .label,
+.sidebar.collapsed .brand {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* HOVER */
+.nav-link:hover {
+  background: #eef2ff;
+  color: #1e40af;
+  transform: translateX(4px);
+}
+
+/* ACTIVE */
+.nav-link.active {
+  background: #0f172a;
+  color: white;
+}
+
+.nav-link.active .icon {
+  opacity: 1;
+}
+
+/* FOOTER */
+.sidebar-footer {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #c7d2fe;
+}
+
+.version {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* MAIN */
+.main {
+  margin-left: 260px;
+  padding: 30px;
+  transition: margin-left 0.35s ease;
+}
+
+.main.collapsed {
+  margin-left: 80px;
+}
