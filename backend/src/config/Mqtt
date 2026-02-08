@@ -1,1 +1,5 @@
+/*
+ * Configuration du client MQTT
+ * Options de connexion, topics par défaut, QoS
+ */
 
