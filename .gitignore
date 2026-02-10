@@ -1,0 +1,15 @@
+# Node
+node_modules
+**/node_modules
+
+# Env
+.env
+**/.env
+
+# IDE
+.idea
+.vscode
+
+# Build
+dist
+build
