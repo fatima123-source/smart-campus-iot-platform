@@ -1,5 +1,8 @@
-/**
- * Moteur de règles IoT
- * Évaluation des conditions, déclenchement d'actions
- * Rules Engine basé sur les données capteurs
- */
+const checkRule = (valeur, seuil) => {
+  if (valeur > seuil) {
+    return "detecte";
+  }
+  return "normal";
+};
+
+module.exports = { checkRule };
