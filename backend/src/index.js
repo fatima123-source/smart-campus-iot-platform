@@ -2,7 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import dns from "dns";
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
-dotenv.config();
+import path from "path";
+dotenv.config({ path: path.resolve("./src/.env") });
 import mongoose from "mongoose";
 import connectDB from "./config/database.js";
 
