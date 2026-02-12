@@ -10,7 +10,8 @@ export default function Navbar({ collapsed, setCollapsed }) {
     { path: "/data", label: "Données", icon: "◉" },
     { path: "/objects", label: "Objets", icon: "▦" },
     { path: "/events", label: "Événement et Notifications", icon: "🔔" },
-    { path: "/actions", label: "Actions et Commandes", icon: "⚡" }
+    { path: "/actions", label: "Actions et Commandes", icon: "⚡" },
+    { path: "/Doc", label: "API Documentation", icon: "<>" }
   ];
 
   return (
