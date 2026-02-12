@@ -1,22 +1,25 @@
 import express from "express";
 import dotenv from "dotenv";
 import dns from "dns";
-dns.setServers(["1.1.1.1", "8.8.8.8"]);
 import path from "path";
-dotenv.config({ path: path.resolve("./src/.env") });
+import { fileURLToPath } from "url";
+
+// Permet d’obtenir __dirname dans ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configure dotenv pour lire le .env dans src
+dotenv.config({ path: path.join(__dirname, ".env") });
+
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
+
 import mongoose from "mongoose";
 import connectDB from "./config/database.js";
 
-/*import objectRoutes from "./routes/object.routes.js";
-import actionsRoutes from "./routes/actions.routes.js";
-import notificationsRoutes from "./routes/notifications.routes.js";
-import subscriptionsRoutes from "./routes/subscriptions.routes.js";
-*/
 console.log("MONGO_URI:", process.env.MONGO_URI);
 
 const app = express();
 app.use(express.json());
-
 
 // DB
 connectDB();
