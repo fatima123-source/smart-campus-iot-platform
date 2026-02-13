@@ -5,13 +5,9 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
 dotenv.config();
 import mongoose from "mongoose";
 import connectDB from "./config/database.js";
+import commandRoutes from "./routes/command.routes.js";
 import "./config/mqttClient.js";
 
-/*import objectRoutes from "./routes/object.routes.js";
-import actionsRoutes from "./routes/actions.routes.js";
-import notificationsRoutes from "./routes/notifications.routes.js";
-import subscriptionsRoutes from "./routes/subscriptions.routes.js";
-*/
 console.log("MONGO_URI:", process.env.MONGO_URI);
 
 const app = express();
@@ -20,6 +16,9 @@ app.use(express.json());
 
 // DB
 connectDB();
+
+//Routes
+app.use("/api/commands", commandRoutes);
 
 // SERVER
 const PORT = process.env.PORT || 5000;
