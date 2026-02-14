@@ -43,6 +43,7 @@ dotenv.config();
 
 import connectDB from "./config/database.js";
 import commandRoutes from "./routes/command.routes.js";
+import objectRoutes from "./routes/object.routes.js";
 import "./config/mqttClient.js";
 
 const app = express();
@@ -55,6 +56,7 @@ connectDB();
 
 // Routes
 app.use("/api/commands", commandRoutes);
+app.use("/api/objects", objectRoutes);
 
 // Server
 const PORT = process.env.PORT || 5000;

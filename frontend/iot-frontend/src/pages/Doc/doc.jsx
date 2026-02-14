@@ -1,251 +1,495 @@
-
 import { useState } from "react";
 
-const Doc = () => {
-  const [tab, setTab] = useState("capteurs");
+const ApiDoc = () => {
+  const [activeTab, setActiveTab] = useState("capteurs");
+  const [copied, setCopied] = useState(null);
+
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const endpoints = {
+    capteurs: [
+      {
+        method: "GET",
+        path: "/api/sensors",
+        description: "Récupérer tous les capteurs",
+        response: `[
+  {
+    "id": "sensor-001",
+    "name": "Capteur température",
+    "type": "temperature",
+    "value": 22.5,
+    "location": "Salle A101"
+  }
+]`
+      },
+      {
+        method: "POST",
+        path: "/api/sensors",
+        description: "Créer un nouveau capteur",
+        body: `{
+  "name": "Capteur humidité",
+  "type": "humidity",
+  "location": "Salle B202"
+}`,
+        response: `{
+  "id": "sensor-002",
+  "name": "Capteur humidité",
+  "type": "humidity",
+  "value": null,
+  "location": "Salle B202"
+}`
+      },
+      {
+        method: "PUT",
+        path: "/api/sensors/:id",
+        description: "Mettre à jour un capteur",
+        body: `{
+  "value": 45.2
+}`,
+        response: `{
+  "id": "sensor-001",
+  "name": "Capteur température",
+  "type": "temperature",
+  "value": 45.2,
+  "location": "Salle A101"
+}`
+      },
+      {
+        method: "DELETE",
+        path: "/api/sensors/:id",
+        description: "Supprimer un capteur",
+        response: `{
+  "message": "Capteur supprimé"
+}`
+      }
+    ],
+    evenements: [
+      {
+        method: "GET",
+        path: "/api/events",
+        description: "Récupérer tous les événements",
+        response: `[
+  {
+    "id": "event-001",
+    "name": "Température élevée",
+    "condition": "temperature > 30",
+    "actions": ["notification"],
+    "active": true
+  }
+]`
+      },
+      {
+        method: "POST",
+        path: "/api/events",
+        description: "Créer un événement",
+        body: `{
+  "name": "Détection mouvement",
+  "condition": "motion = true",
+  "actions": ["allumer lumières"]
+}`,
+        response: `{
+  "id": "event-002",
+  "name": "Détection mouvement",
+  "condition": "motion = true",
+  "actions": ["allumer lumières"],
+  "active": true
+}`
+      }
+    ],
+    actions: [
+      {
+        method: "GET",
+        path: "/api/commands",
+        description: "Récupérer toutes les commandes",
+        response: `[
+  {
+    "application": "AppFSR",
+    "device": "Climatiseur",
+    "codeSalle" : "BIO-B102"
+    "action": "SET_TEMP",
+    "value": "23"
+  }
+]`
+      },
+      {
+        method: "POST",
+        path: "/api/commands",
+        description: "Créer une commande",
+        body: `{
+  "application": "Climatisation",
+  "device": "Climatiseur",
+  "action": "éteindre"
+}`,
+        response: `{
+  "id": "cmd-002",
+  "application": "Climatisation",
+  "device": "Climatiseur",
+  "action": "éteindre",
+  "status": "PENDING"
+}`
+      },
+      {
+        method: "PUT",
+        path: "/api/commands/:id/execute",
+        description: "Exécuter une commande",
+        response: `{
+  "id": "cmd-002",
+  "status": "EXECUTED",
+  "message": "Commande exécutée"
+}`
+      }
+    ]
+  };
+
+  const getMethodStyle = (method) => {
+    const styles = {
+      GET: { background: "#e8f5e9", color: "#2e7d32" },
+      POST: { background: "#e3f2fd", color: "#1565c0" },
+      PUT: { background: "#fff3e0", color: "#ef6c00" },
+      DELETE: { background: "#ffebee", color: "#c62828" }
+    };
+    return styles[method] || styles.GET;
+  };
 
   return (
     <div style={styles.container}>
-
-      {/* HEADER */}
+      {/* Header */}
       <div style={styles.header}>
-        <h1>Documentation API</h1>
-        <p>Points d'accès REST pour l’intégration avec la plateforme Smart Campus</p>
+        <h1 style={styles.title}>Documentation API</h1>
+        <p style={styles.subtitle}>Smart Campus </p>
       </div>
 
-      {/* INFORMATIONS GENERALES */}
-      <section style={styles.card}>
-        <h2>Informations Générales</h2>
-        <p style={styles.muted}>Configuration de base pour utiliser l’API</p>
-
-        <div style={styles.block}>
-          <strong>Base URL</strong>
-          <pre style={styles.code}>https://api.smart-campus.university.fr</pre>
+      {/* Base URL */}
+      <div style={styles.baseUrlCard}>
+        <div style={styles.baseUrlContent}>
+          <span style={styles.baseUrlLabel}>Base URL</span>
+          <code style={styles.baseUrl}>https://api.smart-campus.university/v1</code>
+          <button
+            onClick={() => copyToClipboard("https://api.smart-campus.university", "baseurl")}
+            style={styles.copyButton}
+          >
+            {copied === "baseurl" ? "✓" : "Copier"}
+          </button>
         </div>
+      </div>
 
-        <div style={styles.block}>
-          <strong>Authentification</strong>
-          <pre style={styles.code}>Authorization: Bearer YOUR_API_KEY</pre>
-        </div>
-
-        <div style={styles.block}>
-          <strong>Content-Type</strong>
-          <pre style={styles.code}>application/json</pre>
-        </div>
-      </section>
-
-      {/* TABS */}
+      {/* Tabs */}
       <div style={styles.tabs}>
         <button
-          style={tab === "capteurs" ? styles.activeTab : styles.tab}
-          onClick={() => setTab("capteurs")}
+          style={activeTab === "capteurs" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("capteurs")}
         >
           Capteurs
         </button>
         <button
-          style={tab === "events" ? styles.activeTab : styles.tab}
-          onClick={() => setTab("events")}
+          style={activeTab === "evenements" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("evenements")}
         >
           Événements
         </button>
         <button
-          style={tab === "actions" ? styles.activeTab : styles.tab}
-          onClick={() => setTab("actions")}
+          style={activeTab === "actions" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("actions")}
         >
           Actions
         </button>
       </div>
 
-      {/* CAPTEURS */}
-      {tab === "capteurs" && (
-        <section style={styles.card}>
-          <h2>Endpoints – Capteurs</h2>
-          <p style={styles.muted}>Gestion des capteurs IoT</p>
+      {/* Endpoints */}
+      <div style={styles.endpointsContainer}>
+        {endpoints[activeTab].map((endpoint, index) => {
+          const methodStyle = getMethodStyle(endpoint.method);
+          return (
+            <div key={index} style={styles.endpointCard}>
+              {/* En-tête avec méthode et chemin */}
+              <div style={styles.endpointHeader}>
+                <div style={styles.endpointPath}>
+                  <span style={{
+                    ...styles.method,
+                    background: methodStyle.background,
+                    color: methodStyle.color
+                  }}>
+                    {endpoint.method}
+                  </span>
+                  <code style={styles.path}>{endpoint.path}</code>
+                </div>
+              </div>
 
-          <div style={styles.endpoint}>
-            <span style={styles.get}>GET</span>
-            <code>/api/sensors</code>
+              {/* Description */}
+              <p style={styles.description}>{endpoint.description}</p>
+
+              {/* Corps de la requête (si existe) */}
+              {endpoint.body && (
+                <div style={styles.block}>
+                  <div style={styles.blockHeader}>
+                    <span style={styles.blockTitle}>Corps de la requête</span>
+                    <button
+                      onClick={() => copyToClipboard(endpoint.body, `body-${activeTab}-${index}`)}
+                      style={styles.smallCopyButton}
+                    >
+                      {copied === `body-${activeTab}-${index}` ? "✓" : "Copier"}
+                    </button>
+                  </div>
+                  <pre style={styles.code}>{endpoint.body}</pre>
+                </div>
+              )}
+
+              {/* Réponse */}
+              <div style={styles.block}>
+                <div style={styles.blockHeader}>
+                  <span style={styles.blockTitle}>Réponse</span>
+                  <button
+                    onClick={() => copyToClipboard(endpoint.response, `response-${activeTab}-${index}`)}
+                    style={styles.smallCopyButton}
+                  >
+                    {copied === `response-${activeTab}-${index}` ? "✓" : "Copier"}
+                  </button>
+                </div>
+                <pre style={styles.code}>{endpoint.response}</pre>
+              </div>
+
+              {/* Séparateur sauf pour le dernier */}
+              {index < endpoints[activeTab].length - 1 && <hr style={styles.divider} />}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Codes HTTP */}
+      <div style={styles.httpCard}>
+        <h3 style={styles.httpTitle}>Codes de réponse HTTP</h3>
+        <div style={styles.httpGrid}>
+          <div style={styles.httpItem}>
+            <span style={{...styles.httpCode, background: "#2e7d32"}}>200</span>
+            <span>OK</span>
           </div>
-
-          <p>Récupérer tous les capteurs</p>
-
-          <pre style={styles.code}>
-{`[
-  {
-    "id": "sensor-1",
-    "type": "Température",
-    "value": 23.5
-  }
-]`}
-          </pre>
-        </section>
-      )}
-
-      {/* EVENEMENTS */}
-      {tab === "events" && (
-        <section style={styles.card}>
-          <h2>Endpoints – Événements</h2>
-          <p style={styles.muted}>Gestion des règles et événements</p>
-
-          <div style={styles.endpoint}>
-            <span style={styles.get}>GET</span>
-            <code>/api/events</code>
+          <div style={styles.httpItem}>
+            <span style={{...styles.httpCode, background: "#2e7d32"}}>201</span>
+            <span>Créé</span>
           </div>
-
-          <p>Récupérer tous les événements</p>
-
-          <pre style={styles.code}>
-{`[
-  {
-    "id": "event-1",
-    "name": "Température élevée",
-    "triggered": false
-  }
-]`}
-          </pre>
-        </section>
-      )}
-
-      {/* ACTIONS */}
-      {tab === "actions" && (
-        <section style={styles.card}>
-          <h2>Endpoints – Actions</h2>
-          <p style={styles.muted}>Exécution des actions automatiques</p>
-
-          <div style={styles.endpoint}>
-            <span style={styles.post}>POST</span>
-            <code>/api/actions</code>
+          <div style={styles.httpItem}>
+            <span style={{...styles.httpCode, background: "#ef6c00"}}>400</span>
+            <span>Requête invalide</span>
           </div>
-
-          <p>Déclencher une action</p>
-
-          <pre style={styles.code}>
-{`{
-  "action": "Activer alarme",
-  "target": "Salle A"
-}`}
-          </pre>
-        </section>
-      )}
-
-      {/* CODES HTTP */}
-      <section style={styles.card}>
-        <h2>Codes de Réponse HTTP</h2>
-
-        <ul style={styles.httpList}>
-          <li><span style={styles.ok}>200</span> OK – Requête réussie</li>
-          <li><span style={styles.ok}>201</span> Created – Ressource créée</li>
-          <li><span style={styles.warn}>400</span> Bad Request</li>
-          <li><span style={styles.warn}>401</span> Unauthorized</li>
-          <li><span style={styles.warn}>404</span> Not Found</li>
-          <li><span style={styles.err}>500</span> Server Error</li>
-        </ul>
-      </section>
-
+          <div style={styles.httpItem}>
+            <span style={{...styles.httpCode, background: "#ef6c00"}}>401</span>
+            <span>Non authentifié</span>
+          </div>
+          <div style={styles.httpItem}>
+            <span style={{...styles.httpCode, background: "#ef6c00"}}>404</span>
+            <span>Non trouvé</span>
+          </div>
+          <div style={styles.httpItem}>
+            <span style={{...styles.httpCode, background: "#c62828"}}>500</span>
+            <span>Erreur serveur</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default Doc;
-
-/* =======================
-   STYLES CSS (INLINE)
-======================= */
-
 const styles = {
   container: {
-    padding: "30px",
-    fontFamily: "Arial, sans-serif",
-    background: "#f5f7fb",
+    maxWidth: "1000px",
+    margin: "0 auto",
+    padding: "40px 20px",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    background: "#f5f7fa",
     minHeight: "100vh"
   },
   header: {
-    marginBottom: "20px"
+    marginBottom: "30px"
   },
-  card: {
-    background: "#fff",
-    padding: "20px",
+  title: {
+    fontSize: "32px",
+    fontWeight: "600",
+    color: "#1a2639",
+    margin: "0 0 8px 0"
+  },
+  subtitle: {
+    fontSize: "16px",
+    color: "#5a6a7e",
+    margin: 0
+  },
+  baseUrlCard: {
+    background: "white",
     borderRadius: "10px",
-    marginBottom: "20px",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.05)"
+    padding: "20px",
+    marginBottom: "30px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+    border: "1px solid #eef2f6"
   },
-  muted: {
-    color: "#6b7280",
-    fontSize: "14px"
+  baseUrlContent: {
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+    flexWrap: "wrap"
   },
-  block: {
-    marginTop: "10px"
-  },
-  code: {
-    background: "#f1f5f9",
-    padding: "12px",
-    borderRadius: "6px",
+  baseUrlLabel: {
     fontSize: "14px",
-    overflowX: "auto"
+    fontWeight: "600",
+    color: "#5a6a7e",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px"
+  },
+  baseUrl: {
+    background: "#f0f4f8",
+    padding: "8px 15px",
+    borderRadius: "6px",
+    fontSize: "15px",
+    color: "#2c3e50",
+    fontFamily: "monospace",
+    flex: 1
+  },
+  copyButton: {
+    background: "#3b82f6",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    padding: "8px 16px",
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "background 0.2s"
   },
   tabs: {
     display: "flex",
     gap: "10px",
-    marginBottom: "20px"
+    marginBottom: "25px",
+    borderBottom: "2px solid #eef2f6",
+    paddingBottom: "10px"
   },
   tab: {
     padding: "10px 20px",
     border: "none",
-    borderRadius: "8px",
+    background: "transparent",
+    fontSize: "16px",
+    color: "#5a6a7e",
     cursor: "pointer",
-    background: "#e5e7eb"
+    borderRadius: "6px",
+    transition: "all 0.2s"
   },
   activeTab: {
     padding: "10px 20px",
     border: "none",
-    borderRadius: "8px",
+    background: "#3b82f6",
+    fontSize: "16px",
+    color: "white",
     cursor: "pointer",
-    background: "#2563eb",
-    color: "#fff"
+    borderRadius: "6px"
   },
-  endpoint: {
+  endpointsContainer: {
+    marginBottom: "30px"
+  },
+  endpointCard: {
+    background: "white",
+    borderRadius: "10px",
+    padding: "25px",
+    marginBottom: "20px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+    border: "1px solid #eef2f6"
+  },
+  endpointHeader: {
+    marginBottom: "15px"
+  },
+  endpointPath: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "15px"
+  },
+  method: {
+    padding: "4px 12px",
+    borderRadius: "4px",
+    fontSize: "13px",
+    fontWeight: "600",
+    minWidth: "60px",
+    textAlign: "center"
+  },
+  path: {
+    fontSize: "15px",
+    color: "#2c3e50",
+    fontFamily: "monospace"
+  },
+  description: {
+    fontSize: "15px",
+    color: "#5a6a7e",
+    margin: "0 0 20px 0"
+  },
+  block: {
+    marginTop: "20px"
+  },
+  blockHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: "10px"
   },
-  get: {
-    background: "#22c55e",
-    color: "#fff",
-    padding: "4px 8px",
-    borderRadius: "6px",
-    fontSize: "12px"
+  blockTitle: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#5a6a7e"
   },
-  post: {
-    background: "#3b82f6",
-    color: "#fff",
-    padding: "4px 8px",
-    borderRadius: "6px",
-    fontSize: "12px"
+  code: {
+    background: "#1e2b3a",
+    color: "#e5e9f0",
+    padding: "15px",
+    borderRadius: "8px",
+    fontSize: "14px",
+    fontFamily: "monospace",
+    overflowX: "auto",
+    margin: 0,
+    lineHeight: "1.5"
   },
-  httpList: {
-    listStyle: "none",
-    padding: 0
+  smallCopyButton: {
+    background: "transparent",
+    border: "1px solid #d0d9e5",
+    borderRadius: "4px",
+    padding: "4px 10px",
+    fontSize: "12px",
+    color: "#5a6a7e",
+    cursor: "pointer"
   },
-  ok: {
-    background: "#22c55e",
-    color: "#fff",
-    padding: "4px 8px",
-    borderRadius: "6px",
-    marginRight: "8px"
+  divider: {
+    border: "none",
+    borderTop: "1px solid #eef2f6",
+    margin: "25px 0 15px 0"
   },
-  warn: {
-    background: "#f97316",
-    color: "#fff",
-    padding: "4px 8px",
-    borderRadius: "6px",
-    marginRight: "8px"
+  httpCard: {
+    background: "white",
+    borderRadius: "10px",
+    padding: "25px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+    border: "1px solid #eef2f6"
   },
-  err: {
-    background: "#ef4444",
-    color: "#fff",
+  httpTitle: {
+    fontSize: "18px",
+    fontWeight: "600",
+    color: "#1a2639",
+    margin: "0 0 20px 0"
+  },
+  httpGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+    gap: "15px"
+  },
+  httpItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px"
+  },
+  httpCode: {
     padding: "4px 8px",
-    borderRadius: "6px",
-    marginRight: "8px"
+    borderRadius: "4px",
+    color: "white",
+    fontSize: "12px",
+    fontWeight: "600",
+    minWidth: "45px",
+    textAlign: "center"
   }
 };
+
+export default ApiDoc;

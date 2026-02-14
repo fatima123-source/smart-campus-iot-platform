@@ -23,7 +23,7 @@ function App() {
           <Route path="/objects" element={<Objects />} />
           <Route path="/events" element={<Events />} />
           <Route path="/actions" element={<Actions />} />
-
+          <Route path="/Doc" element={<Doc />} />
         </Routes>
       </main>
     </BrowserRouter>
