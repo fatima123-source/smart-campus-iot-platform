@@ -1,50 +1,103 @@
 import Command from "../models/Commandes.js";
+import Salle from "../models/Salle.js";
 import mqttClient from "../config/mqttClient.js";
 
-// 🔵 Créer une commande + l'envoyer sur MQTT
+
+// ✅ CREER COMMANDE (POSTMAN / APP)
 export const createCommand = async (req, res) => {
   try {
-    // 1️⃣ Sauvegarder en base
-    const command = await Command.create(req.body);
+    // 🔍 DEBUG complet du body
+    console.log("BODY exact reçu:", JSON.stringify(req.body));
+    console.log("Type codeSalle:", typeof req.body.codeSalle);
 
-    // 2️⃣ Construire le topic MQTT
-    const topic = `${process.env.MQTT_TOPIC_BASE}/${command.salleId}/${command.device}`;
+    // On prépare le code recherché (trim + string)
+    const codeRecherche = req.body.codeSalle?.toString().trim();
+    console.log("Code recherché après trim:", JSON.stringify(codeRecherche));
 
-    // 3️⃣ Construire le message
-    const message = JSON.stringify({
-      application: command.application,
-      device: command.device,
-      action: command.action,
-      value: command.value || null,
-      mode: command.mode || null,
-      reason: command.reason || null,
-      codeSalle: command.codeSalle
+    let salle = null;
+
+    if (req.body.salleId) {
+      // Recherche par ID si fourni
+      console.log("Recherche par salleId:", req.body.salleId);
+      salle = await Salle.findById(req.body.salleId);
+    } else if (codeRecherche) {
+      // 🔍 DEBUG : toutes les salles existantes
+      const toutesSalles = await Salle.find();
+      console.log("Toutes les salles dans la DB:", toutesSalles.map(s => s.code));
+
+      // Recherche par code avec insensible à la casse pour être sûr
+      salle = await Salle.findOne({
+        code: { $regex: `^${codeRecherche}$`, $options: 'i' }
+      });
+    }
+
+    console.log("Salle trouvée:", salle);
+
+    if (!salle) {
+      return res.status(404).json({ message: "Salle non trouvée" });
+    }
+
+    const command = await Command.create({
+      ...req.body,
+      salleId: salle._id,
+      codeSalle: salle.code,
+      status: "PENDING"
     });
 
-    // 4️⃣ Publier vers MQTT
-    mqttClient.publish(topic, message, { qos: 1 }, (err) => {
-      if (err) {
-        console.error("❌ MQTT publish error:", err.message);
-      } else {
-        console.log("✅ Command sent to MQTT:", topic);
-      }
-    });
+    console.log("Commande créée avec succès:", command._id);
 
-    res.status(201).json({
-      message: "Commande envoyée vers la plateforme SmartCampus 💯",
-      command
-    });
+    res.status(201).json(command);
 
+  } catch (error) {
+    console.error("Erreur createCommand:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
+// ✅ LISTER COMMANDES + INFOS SALLE
+export const getAllCommands = async (req, res) => {
+  try {
+    const commands = await Command.find()
+      .populate("salleId")
+      .sort({ createdAt: -1 });
+
+    res.json(commands);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// 🔵 Lister les commandes
-export const getAllCommands = async (req, res) => {
+
+
+// ✅ EXECUTER COMMANDE (BOUTON INTERFACE)
+export const executeCommand = async (req, res) => {
   try {
-    const commands = await Command.find().sort({ createdAt: -1 });
-    res.json(commands);
+    const command = await Command.findById(req.params.id);
+
+    if (!command) {
+      return res.status(404).json({ message: "Commande introuvable" });
+    }
+
+    const topic = `${process.env.MQTT_TOPIC_BASE}/platform/execute`;
+
+    const message = JSON.stringify({
+      commandId: command._id,
+      salle: command.codeSalle,
+      device: command.device,
+      action: command.action,
+      value: command.value || null,
+      mode: command.mode || null
+    });
+
+    mqttClient.publish(topic, message, { qos: 1 });
+
+    console.log("📡 Command sent for execution");
+
+    res.json({ message: "Commande envoyée pour exécution" });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

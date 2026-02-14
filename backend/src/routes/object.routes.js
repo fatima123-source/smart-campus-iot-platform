@@ -1,5 +1,11 @@
-/**
- * Routes REST pour la gestion des objets IoT
- * CRUD standard + routes spécifiques IoT
- * GET /objects, POST /objects, GET /objects/:id, etc.
- */
+import express from "express";
+import objectController from "../controllers/object.controller.js";
+
+const router = express.Router();
+
+router.post("/", objectController.createObject);
+router.get("/", objectController.getObjects);
+router.put("/:id", objectController.updateObject);
+router.delete("/:id", objectController.deleteObject);
+
+export default router;
