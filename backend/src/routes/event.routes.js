@@ -1,41 +1,18 @@
-import mongoose from "mongoose";
+import express from "express";
+import { createEvent, getEvents, getEventsBySalle, getLastEventBySalle } from "../controllers/event.controller.js";
 
-const eventSchema = new mongoose.Schema({
-  type: {
-    type: String,
-    required: true
-  },
+const router = express.Router();
 
-  salleId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Salle",
-    required: true
-  },
+// Création d'un événement
+router.post("/", createEvent);
 
-  capteurType: {
-    type: String, // presence, temperature, humidity
-    required: true
-  },
-
-  valeur: {
-    type: Number,
-    required: true
-  },
-
-  capacite: Number,
-
-  description: String,
-
-  notifie: {
-    type: Boolean,
-    default: false
-  },
-
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
+// Tous les événements ou par salle
+router.get("/", async (req, res) => {
+  if (req.query.salleId) return getEventsBySalle(req, res);
+  return getEvents(req, res);
 });
 
-const Event = mongoose.model("Event", eventSchema,"evenements");
-export default Event;
+// 🔹 Dernier événement d'une salle
+router.get("/last", getLastEventBySalle);
+
+export default router;
