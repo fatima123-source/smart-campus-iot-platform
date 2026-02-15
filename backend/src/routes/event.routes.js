@@ -1,8 +1,41 @@
-const express = require('express');
-const router = express.Router();
-const eventController = require('../controllers/event.controller');
+import mongoose from "mongoose";
 
-router.post('/', eventController.createEvent);  // créer un événement
-router.get('/', eventController.getAllEvents); // récupérer tous les événements
+const eventSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    required: true
+  },
 
-module.exports = router;
+  salleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Salle",
+    required: true
+  },
+
+  capteurType: {
+    type: String, // presence, temperature, humidity
+    required: true
+  },
+
+  valeur: {
+    type: Number,
+    required: true
+  },
+
+  capacite: Number,
+
+  description: String,
+
+  notifie: {
+    type: Boolean,
+    default: false
+  },
+
+  timestamp: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+const Event = mongoose.model("Event", eventSchema,"evenements");
+export default Event;
