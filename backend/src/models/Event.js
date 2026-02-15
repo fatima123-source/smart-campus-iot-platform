@@ -1,37 +1,38 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const eventSchema = new mongoose.Schema({
-  nomEvent: {
+  type: {
     type: String,
+    enum: ['salle_vide', 'salle_pleine', 'surconsommation', 'temperature_elevee', 'temperature_basse'],
     required: true
   },
-  sensorId: {
+  salleId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Sensor",
-    required: true
+    required: true,
+    ref: 'Salle'
   },
-  typeEvent: {
-    type: String,
-    required: true
+  timestamp: {
+    type: Date,
+    required: true,
+    default: Date.now
+  },
+  message: {
+    type: String
+  },
+  traite: {
+    type: Boolean,
+    default: false
+  },
+  capteurType: {
+    type: String
   },
   valeur: {
-    type: Number,
-    required: true
+    type: Number
   },
   seuil: {
-    type: Number,
-    required: true
-  },
-  statut: {
-    type: String,
-    enum: ["normal", "detecte"],
-    default: "normal"
-  },
-  date: {
-    type: Date,
-    default: Date.now
+    type: Number
   }
 });
 
-module.exports = mongoose.model("Event", eventSchema);
+module.exports = mongoose.model('Event', eventSchema);
 
