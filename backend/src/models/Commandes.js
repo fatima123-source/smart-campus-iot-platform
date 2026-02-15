@@ -2,7 +2,10 @@ import mongoose from "mongoose";
 
 const commandSchema = new mongoose.Schema(
   {
-    application: { type: String, required: true },
+    application: {
+      type: String,
+      required: true
+    },
 
     device: {
       type: String,
@@ -16,7 +19,10 @@ const commandSchema = new mongoose.Schema(
       required: true
     },
 
-    codeSalle: { type: String, required: true },
+    codeSalle: {
+      type: String,
+      required: true
+    },
 
     action: {
       type: String,
@@ -32,9 +38,13 @@ const commandSchema = new mongoose.Schema(
 
     value: Number,
     mode: String,
-    reason: String
+    reason: String,      // 👈 Pour stocker la raison du rejet
+    executedAt: Date,    // 👈 Date d'exécution
+    rejectedAt: Date     // 👈 Date de rejet
   },
-  { timestamps: true }
+  {
+    timestamps: true     // 👈 Gère automatiquement createdAt et updatedAt
+  }
 );
 
 export default mongoose.model("Command", commandSchema);

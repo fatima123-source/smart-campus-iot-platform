@@ -1,7 +1,7 @@
 import Command from "../models/Commandes.js";
 import Salle from "../models/Salle.js";
+import Event from "../models/Event.js"; // Ajouter cette ligne
 import mqttClient from "../config/mqttClient.js";
-
 
 // ✅ CREER COMMANDE (POSTMAN / APP)
 export const createCommand = async (req, res) => {
@@ -54,9 +54,6 @@ export const createCommand = async (req, res) => {
   }
 };
 
-
-
-
 // ✅ LISTER COMMANDES + INFOS SALLE
 export const getAllCommands = async (req, res) => {
   try {
@@ -70,8 +67,6 @@ export const getAllCommands = async (req, res) => {
   }
 };
 
-
-
 // ✅ EXECUTER COMMANDE (BOUTON INTERFACE)
 export const executeCommand = async (req, res) => {
   try {
@@ -81,6 +76,23 @@ export const executeCommand = async (req, res) => {
       return res.status(404).json({ message: "Commande introuvable" });
     }
 
+    // 🔍 LOGIQUE MÉTIER : Vérifier les événements avant exécution
+    const peutEtreExecutee = await verifierEvenementsSalle(command);
+
+    if (!peutEtreExecutee) {
+      // Si la commande ne peut pas être exécutée, on la rejette automatiquement
+      command.status = "FAILED";
+      command.reason = "Rejet automatique: ne correspond pas aux événements actuels de la salle";
+      command.rejectedAt = new Date();
+      await command.save();
+
+      return res.status(400).json({
+        message: "Commande rejetée automatiquement",
+        reason: command.reason
+      });
+    }
+
+    // Si tout est OK, on publie sur MQTT
     const topic = `${process.env.MQTT_TOPIC_BASE}/platform/execute`;
 
     const message = JSON.stringify({
@@ -94,11 +106,129 @@ export const executeCommand = async (req, res) => {
 
     mqttClient.publish(topic, message, { qos: 1 });
 
+    // Mettre à jour le statut de la commande
+    command.status = "EXECUTED";
+    command.executedAt = new Date();
+    await command.save();
+
     console.log("📡 Command sent for execution");
 
-    res.json({ message: "Commande envoyée pour exécution" });
+    res.json({
+      message: "Commande envoyée pour exécution",
+      command
+    });
 
   } catch (error) {
+    console.error("Erreur executeCommand:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
+// ✅ REJETER COMMANDE MANUELLEMENT (NOUVEAU)
+export const rejectCommand = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const command = await Command.findById(req.params.id);
+
+    if (!command) {
+      return res.status(404).json({ message: "Commande introuvable" });
+    }
+
+    // Vérifier que la commande est bien en attente
+    if (command.status !== "PENDING") {
+      return res.status(400).json({
+        message: `Impossible de rejeter une commande avec le statut ${command.status}`
+      });
+    }
+
+    // Mettre à jour le statut
+    command.status = "FAILED";
+    command.reason = reason || "Rejet manuel";
+    command.rejectedAt = new Date();
+
+    await command.save();
+
+    console.log(`✅ Commande ${command._id} rejetée: ${command.reason}`);
+
+    res.json({
+      message: "Commande rejetée avec succès",
+      command
+    });
+
+  } catch (error) {
+    console.error("Erreur rejectCommand:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ FONCTION UTILITAIRE : Vérifier les événements de la salle
+async function verifierEvenementsSalle(command) {
+  try {
+    console.log(`🔍 Vérification des événements pour salle: ${command.codeSalle}`);
+
+    // Récupérer les 10 derniers événements de la salle
+    const derniersEvents = await Event.find({
+      salleId: command.salleId
+    })
+    .sort({ timestamp: -1 })
+    .limit(10);
+
+    console.log(`📊 ${derniersEvents.length} événements trouvés`);
+
+    if (derniersEvents.length === 0) {
+      console.log("✅ Aucun événement, commande autorisée");
+      return true;
+    }
+
+    // 📌 RÈGLE 1: Si salle pleine (type "salle_pleine")
+    const sallePleine = derniersEvents.some(e => e.type === "salle_pleine");
+
+    if (sallePleine) {
+      console.log("🚫 SALLE PLEINE détectée");
+
+      // Interdire certaines actions quand la salle est pleine
+      if (command.action === "TURN_ON" || command.action === "BOOST") {
+        console.log("❌ Commande rejetée: action interdite quand salle pleine");
+        return false;
+      }
+    }
+
+    // 📌 RÈGLE 2: Vérifier le capteur de présence
+    const dernierEventPresence = derniersEvents.find(e => e.capteurType === "presence");
+
+    if (dernierEventPresence) {
+      console.log(`👤 Dernière présence: ${dernierEventPresence.valeur} personnes`);
+
+      // Si personne dans la salle, on peut éteindre mais pas allumer
+      if (dernierEventPresence.valeur === 0) {
+        if (command.action === "TURN_ON") {
+          console.log("❌ Commande rejetée: personne dans la salle");
+          return false;
+        }
+      }
+    }
+
+    // 📌 RÈGLE 3: Vérifier la température si commande de climatisation
+    if (command.device === "Climatiseur" && command.action === "SET_TEMP") {
+      const dernierEventTemp = derniersEvents.find(e => e.capteurType === "temperature");
+
+      if (dernierEventTemp) {
+        console.log(`🌡️ Température actuelle: ${dernierEventTemp.valeur}°C`);
+
+        // Empêcher de régler une température trop basse
+        if (command.value < 16) {
+          console.log("❌ Commande rejetée: température trop basse");
+          return false;
+        }
+      }
+    }
+
+    console.log("✅ Commande autorisée par la logique événementielle");
+    return true;
+
+  } catch (error) {
+    console.error("Erreur dans verifierEvenementsSalle:", error);
+    // En cas d'erreur, on autorise par sécurité
+    return true;
+  }
+}

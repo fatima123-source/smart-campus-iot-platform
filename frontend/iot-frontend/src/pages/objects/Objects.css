@@ -1,0 +1,43 @@
+.objects-container { background: #f7f8fc; min-height: 100vh; } .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; } .add-btn { background: #1e293b; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; } .add-btn:hover { background: #334155; } .object-form { background: white; padding: 20px; border-radius: 10px; margin-bottom: 25px; display: flex; gap: 10px; } .object-form input, .object-form select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; } .object-form button { background: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 6px; } .objects-table { width: 100%; background: white; border-radius: 10px; border-collapse: collapse; } .objects-table th, .objects-table td { padding: 14px; border-bottom: 1px solid #eee; text-align: left; }
+/* ==========================
+  ICÔNES Actions (Edit / Delete)
+========================== */
+.action-icon {
+  margin-right: 10px;
+  cursor: pointer;
+  color: #1e293b; /* même couleur que ton bouton ajouter */
+}
+
+.action-icon:hover {
+  color: #2563eb; /* bleu sur hover */
+}
+
+/* ==========================
+  FORMULAIRE EDIT INLINE
+========================== */
+.objects-table input,
+.objects-table select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ==========================
+  STATISTIQUES CARTES (optionnel si tu veux marges)
+========================== */
+.stats-cards {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.card {
+  background: #1e293b;
+  color: white;
+  flex: 1;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+}
