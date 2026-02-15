@@ -30,7 +30,7 @@ SENSORS = [
     {"type": "temperature", "unit": "°C", "min": 18, "max": 35},
     {"type": "energie", "unit": "kWh", "min": 100, "max": 1200},
     {"type": "presence", "unit": "persons", "min": 0, "max": 40},
-    {"type": "smoke", "unit": "ppm", "min": 0, "max": 300}  # smoke → type "temperature" pour MongoDB
+    {"type": "temperature", "unit": "ppm", "min": 0, "max": 300}  # smoke → type "temperature" pour MongoDB
 ]
 
 # ===============================
