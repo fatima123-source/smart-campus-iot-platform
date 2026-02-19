@@ -57,4 +57,6 @@ export const getLastEventBySalle = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+Corrige event.controller.js : ajoute Socket.IO et nettoie les strings
+
 
