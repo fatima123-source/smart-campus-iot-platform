@@ -1,71 +1,60 @@
 import Event from "../models/Event.js";
+import { io } from "../index.js";
+import { sendNotification } from "../services/notification.service.js";
 
-// créer
+// 🔹 Créer un événement
 export const createEvent = async (req, res) => {
   try {
-    const {
-      type,
-      salleId,
-      capteurType,
-      valeur,
-      capacite,
-      description
-    } = req.body;
+    const { type, salleId, capteurType, valeur, capacite, description } = req.body;
 
-    const event = new Event({
-      type,
-      salleId,
-      capteurType,
-      valeur,
-      capacite,
-      description
-    });
+    const event = new Event({ type, salleId, capteurType, valeur, capacite, description });
 
     await event.save();
 
+    // 🔥 Notification temps réel
+    io.emit("newEvent", event);
+
+    // Notification classique (optionnelle)
+    sendNotification(event);
+
     res.status(201).json(event);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// tous events
+// 🔹 Récupérer tous les événements
 export const getEvents = async (req, res) => {
   try {
     const events = await Event.find().sort({ timestamp: -1 });
     res.json(events);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// events par salle
+// 🔹 Récupérer les événements par salle
 export const getEventsBySalle = async (req, res) => {
   try {
-    const events = await Event.find({
-      salleId: req.params.salleId
-    }).sort({ timestamp: -1 });
-
+    const events = await Event.find({ salleId: req.query.salleId }).sort({ timestamp: -1 });
     res.json(events);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// ✅ récupérer le dernier événement par salle
+// 🔹 Récupérer le dernier événement d'une salle
 export const getLastEventBySalle = async (req, res) => {
   try {
-    const lastEvent = await Event.findOne({
-      salleId: req.query.salleId
-    })
-    .sort({ timestamp: -1 }); // 🔹 tri décroissant, donc le premier est le plus récent
-
-    if (!lastEvent) {
-      return res.status(404).json({ message: "Aucun événement trouvé pour cette salle" });
-    }
-
+    const lastEvent = await Event.findOne({ salleId: req.query.salleId }).sort({ timestamp: -1 });
+    if (!lastEvent) return res.status(404).json({ message: "Aucun evenement trouve pour cette salle" });
     res.json(lastEvent);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
+
