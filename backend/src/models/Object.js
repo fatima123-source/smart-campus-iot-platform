@@ -5,24 +5,24 @@ const ObjectSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  type: {
+
+  typeObjet: {
     type: String,
-    enum: ["temperature", "fumee", "presence", "consomation", "autre"],
+    enum: ["capteur", "actionneur"],
     required: true
   },
-  customType: {
+
+  categorie: {
     type: String,
-    default: null
+    required: true
   },
+
   statut: {
     type: String,
     enum: ["actif", "inactif"],
     default: "actif"
-  },
-  actionneurLie: {
-    type: String,
-    default: null
   }
+
 }, { timestamps: true });
 
 export default mongoose.model("Object", ObjectSchema);

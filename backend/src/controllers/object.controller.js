@@ -5,78 +5,91 @@ import ObjectModel from "../models/Object.js";
 // ===============================
 const createObject = async (req, res) => {
   try {
-    const { nomObjet, type, statut } = req.body;
-
-    if (!nomObjet || !type || !statut) {
-      return res.status(400).json({
-        message: "Tous les champs sont obligatoires",
-      });
-    }
+    const { nomObjet, typeObjet, categorie, statut } = req.body;
 
     const newObject = new ObjectModel({
       nomObjet,
-      type,
-      statut,
+      typeObjet,
+      categorie,
+      statut
     });
 
     await newObject.save();
 
-    res.status(201).json({
-      message: "Objet enregistré avec succès ✅",
-      data: newObject,
-    });
+    res.status(201).json(newObject);
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
 
-// ===============================
-// Récupérer tous les objets
-// ===============================
+
+
+// =====================================================
+// ✅ AJOUT 1 : récupérer tous les objets (GET)
+// =====================================================
 const getObjects = async (req, res) => {
   try {
     const objects = await ObjectModel.find();
-    res.json(objects);
+
+    res.status(200).json(objects);
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur" });
+    console.error(error);
+    res.status(500).json({
+      message: "Erreur serveur",
+    });
   }
 };
 
-// ===============================
-// Modifier un objet
-// ===============================
+
+// =====================================================
+// ✅ AJOUT 2 : modifier un objet (PUT)
+// =====================================================
 const updateObject = async (req, res) => {
   try {
-    const updated = await ObjectModel.findByIdAndUpdate(
-      req.params.id,
+    const updatedObject = await ObjectModel.findByIdAndUpdate(
+      req.params.id,   // ← id vient de /:id dans la route
       req.body,
       { new: true }
     );
 
-    res.json(updated);
+    res.json(updatedObject);
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur" });
+    console.error(error);
+    res.status(500).json({
+      message: "Erreur serveur",
+    });
   }
 };
 
-// ===============================
-// Supprimer un objet
-// ===============================
+
+// =====================================================
+// ✅ AJOUT 3 : supprimer un objet (DELETE)
+// =====================================================
 const deleteObject = async (req, res) => {
   try {
     await ObjectModel.findByIdAndDelete(req.params.id);
-    res.json({ message: "Objet supprimé" });
+
+    res.json({
+      message: "Objet supprimé ✅",
+    });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur" });
+    console.error(error);
+    res.status(500).json({
+      message: "Erreur serveur",
+    });
   }
 };
 
+
+
 // ===============================
-// Export
+// ✅ EXPORT (MODIFIÉ)
 // ===============================
 export default {
   createObject,
   getObjects,
   updateObject,
-  deleteObject,
+  deleteObject
 };

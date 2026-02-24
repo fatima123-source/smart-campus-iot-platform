@@ -9,3 +9,4 @@ router.put("/:id", objectController.updateObject);
 router.delete("/:id", objectController.deleteObject);
 
 export default router;
+

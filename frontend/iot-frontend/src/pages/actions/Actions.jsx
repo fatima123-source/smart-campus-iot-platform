@@ -337,7 +337,7 @@ export default function Actions() {
         </table>
       </div>
 
-      {/* Pagination */}
+
       {totalPages > 1 && (
         <div className="pagination">
           <button className="page-btn" onClick={() => setCurrentPage((p) => Math.max(1, p-1))} disabled={currentPage === 1}>←</button>

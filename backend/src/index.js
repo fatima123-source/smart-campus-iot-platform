@@ -44,6 +44,8 @@ dotenv.config();
 import connectDB from "./config/database.js";
 import commandRoutes from "./routes/command.routes.js";
 import objectRoutes from "./routes/object.routes.js";
+import eventRoutes from "./routes/event.routes.js";
+import dataRoutes from "./routes/data.routes.js";
 import "./config/mqttClient.js";
 
 const app = express();
@@ -57,9 +59,11 @@ connectDB();
 // Routes
 app.use("/api/commands", commandRoutes);
 app.use("/api/objects", objectRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/data", dataRoutes);
 
 // Server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3030;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

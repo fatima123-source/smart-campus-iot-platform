@@ -1,36 +1,70 @@
-const Event = require("../models/Event");
-const { checkRule } = require("../services/rule.service");
-const { sendNotification } = require("../services/notification.service");
+import Event from "../models/Event.js";
 
-exports.createEvent = async (req, res) => {
+export const createEvent = async (req, res) => {
   try {
-    const { nomEvent, sensorId, typeEvent, valeur, seuil } = req.body;
-
-    const statut = checkRule(valeur, seuil);
+    const {
+      type,
+      salleId,
+      capteurType,
+      valeur,
+      capacite,
+      description
+    } = req.body;
 
     const event = new Event({
-      nomEvent,
-      sensorId,
-      typeEvent,
+      type,
+      salleId,
+      capteurType,
       valeur,
-      seuil,
-      statut
+      capacite,
+      description
     });
 
     await event.save();
 
-    if (statut === "detecte") {
-      await sendNotification(event);
-    }
-
     res.status(201).json(event);
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-exports.getEvents = async (req, res) => {
-  const events = await Event.find().populate("sensorId");
-  res.json(events);
+// tous events
+export const getEvents = async (req, res) => {
+  try {
+    const events = await Event.find().sort({ timestamp: -1 });
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// events par salle
+export const getEventsBySalle = async (req, res) => {
+  try {
+    const events = await Event.find({
+      salleId: req.params.salleId
+    }).sort({ timestamp: -1 });
+
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ récupérer le dernier événement par salle
+export const getLastEventBySalle = async (req, res) => {
+  try {
+    const lastEvent = await Event.findOne({
+      salleId: req.query.salleId
+    })
+    .sort({ timestamp: -1 });
+
+    if (!lastEvent) {
+      return res.status(404).json({ message: "Aucun événement trouvé pour cette salle" });
+    }
+
+    res.json(lastEvent);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };

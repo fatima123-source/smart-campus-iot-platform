@@ -10,7 +10,7 @@ const salleSchema = new mongoose.Schema({
   floor: Number,
   capacity: Number,
   description: String
-}, { collection: "Salles" }); // <-- nom exact de ta collection
+}, { collection: "Salles" });
 
 export default mongoose.model("Salle", salleSchema);
 
