@@ -26,3 +26,20 @@ body {
 .main.collapsed {
   margin-left: 80px;
 }
+
+/* frontend/iot-frontend/src/index.css */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}

@@ -1,38 +1,45 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const eventSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['salle_vide', 'salle_pleine', 'surconsommation', 'temperature_elevee', 'temperature_basse'],
     required: true
   },
-  salleId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    ref: 'Salle'
+
+  // IMPORTANT : STRING (pas ObjectId)
+  salle: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Salle",
+  required: true
+},
+
+  capteurType: {
+    type: String,
+    required: true
   },
-  timestamp: {
-    type: Date,
-    required: true,
-    default: Date.now
+
+  valeur: {
+    type: Number,
+    required: true
   },
-  message: {
-    type: String
+
+  description: {
+    type: String,
+    default: ""
   },
-  traite: {
+
+  notifie: {
     type: Boolean,
     default: false
   },
-  capteurType: {
-    type: String
-  },
-  valeur: {
-    type: Number
-  },
-  seuil: {
-    type: Number
+
+  timestamp: {
+    type: Date,
+    default: Date.now
   }
 });
 
-module.exports = mongoose.model('Event', eventSchema);
+// ⚠️ PAS de hook pour l’instant (on simplifie)
+const Event = mongoose.model("Event", eventSchema, "evenements");
 
+export default Event;
