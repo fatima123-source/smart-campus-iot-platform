@@ -8,7 +8,8 @@ export const createEvent = async (req, res) => {
       capteurType,
       valeur,
       capacite,
-      description
+      description,
+      notifie
     } = req.body;
 
     const event = new Event({
@@ -17,7 +18,8 @@ export const createEvent = async (req, res) => {
       capteurType,
       valeur,
       capacite,
-      description
+      description,
+      notifie
     });
 
     await event.save();

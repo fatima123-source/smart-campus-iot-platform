@@ -63,7 +63,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/data", dataRoutes);
 
 // Server
-const PORT = process.env.PORT || 3030;
+const PORT =  3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

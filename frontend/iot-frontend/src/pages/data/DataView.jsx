@@ -395,7 +395,7 @@ const graphData = (() => {
               outline: "none", minWidth: "180px", cursor: "pointer",
             }}
           >
-            <option value="">🏫 Toutes les salles</option>
+            <option value="">Toutes les salles</option>
             {salles.map((s) => (
               <option key={s._id} value={s._id}>
                 {s.name} ({s.type})
@@ -413,9 +413,9 @@ const graphData = (() => {
               outline: "none", minWidth: "160px", cursor: "pointer",
             }}
           >
-            <option value="">📡 Tous les types</option>
-            <option value="temperature">🌡️ Température</option>
-            <option value="presence">👥 Présence</option>
+            <option value="">Tous les types</option>
+            <option value="temperature">Température</option>
+            <option value="presence">Présence</option>
             <option value="energie">⚡ Énergie</option>
           </select>
 
@@ -429,7 +429,7 @@ const graphData = (() => {
               outline: "none", minWidth: "140px", cursor: "pointer",
             }}
           >
-            <option value="">📏 Toutes unités</option>
+            <option value="">Toutes unités</option>
             <option value="°C">°C — Température</option>
             <option value="ppm">ppm — Gaz/CO₂</option>
             <option value="persons">pers — Présence</option>
@@ -503,7 +503,7 @@ const graphData = (() => {
             boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
           }}>
             <h3 style={{ margin: "0 0 20px", fontSize: "16px", fontWeight: 600 }}>
-              📈 Historique — {salles.find(s => s._id === selectedSalle)?.name}
+              Historique — {salles.find(s => s._id === selectedSalle)?.name}
             </h3>
             {histLoading ? (
               <div style={{ textAlign: "center", color: "#94a3b8", padding: "40px" }}>
@@ -545,7 +545,7 @@ const graphData = (() => {
         }}>
           <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #f1f5f9" }}>
             <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>
-              🗂️ Détail des capteurs
+              Détail des capteurs
             </h3>
           </div>
 

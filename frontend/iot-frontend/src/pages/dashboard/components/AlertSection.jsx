@@ -80,13 +80,13 @@ export default function AlertSection() {
         
         <div style={styles.stats}>
           <span style={{...styles.badge, background: '#e74c3c'}}>
-            🚨 {stats.urgents}
+             {stats.urgents}
           </span>
           <span style={{...styles.badge, background: '#f39c12'}}>
-            ⚠️ {stats.vides}
+            {stats.vides}
           </span>
           <span style={{...styles.badge, background: '#3498db'}}>
-            📌 {stats.total}
+            {stats.total}
           </span>
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function AlertSection() {
             color: filtre === 'urgents' ? 'white' : '#333'
           }}
         >
-          🚨 Urgents ({stats.urgents})
+           Urgents ({stats.urgents})
         </button>
         <button 
           onClick={() => setFiltre('vider')}
@@ -120,7 +120,7 @@ export default function AlertSection() {
             color: filtre === 'vider' ? 'white' : '#333'
           }}
         >
-          ⚠️ Salles vides ({stats.vides})
+           Salles vides ({stats.vides})
         </button>
       </div>
 

@@ -1486,7 +1486,7 @@ const connectDB = async () => {
 };
 
 // ============ DÉMARRAGE ============
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 connectDB().then(() => {
   app.listen(PORT, () => {

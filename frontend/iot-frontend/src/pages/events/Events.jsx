@@ -10,7 +10,7 @@ export default function EventsPage() {
   useEffect(() => {
     async function fetchEvents() {
       try {
-        const res = await axios.get("http://localhost:5000/api/events");
+        const res = await axios.get("http://localhost:3000/api/events");
         console.log(res.data); // <-- vérifie la structure dans la console du navigateur
         setEvents(res.data);
       } catch (err) {
@@ -35,16 +35,16 @@ export default function EventsPage() {
       latestEvent.capteurType === "temperature" &&
       latestEvent.valeur > 30
     ) {
-      alertMessage = "⚠️ Température élevée détectée !";
+      alertMessage = "Température élevée détectée !";
     } else if (latestEvent.type === "ALERT") {
-      alertMessage = "🚨 Alerte critique détectée !";
+      alertMessage = "Alerte critique détectée !";
     }
   }
 
   // ✅ S'abonner à un événement
   const subscribe = async (eventId) => {
     try {
-      await axios.post("http://localhost:5000/api/subscriptions", {
+      await axios.post("http://localhost:3000/api/subscriptions", {
         appName: "WebApp",
         eventId: eventId,
       });
@@ -60,10 +60,10 @@ export default function EventsPage() {
   const notify = async (eventId) => {
     try {
       await axios.post(
-        `http://localhost:5000/api/notifications/notify/${eventId}`
+        `http://localhost:3000/api/notifications/notify/${eventId}`
       );
 
-      alert("🔔 Notification envoyée !");
+      alert("Notification envoyée !");
     } catch (err) {
       console.error(err);
       alert("Erreur notification");
@@ -72,7 +72,7 @@ export default function EventsPage() {
 
   return (
     <div style={{ padding: "40px", minHeight: "100vh", background: "#f0f9ff" }}>
-      <h2 style={{ marginBottom: "20px" }}>📊 Événements Smart Campus</h2>
+      <h2 style={{ marginBottom: "20px" }}>Événements Smart Campus</h2>
 
       {alertMessage && (
         <div

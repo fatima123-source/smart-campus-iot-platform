@@ -1,7 +1,7 @@
 // createEventLive.js
 import fetch from "node-fetch"; // si Node >= 18 tu peux utiliser fetch natif
 
-const url = "http://localhost:5000/api/events";
+const url = "http://localhost:3000/api/events";
 
 const eventData = {
   type: "temperature_elevee",

@@ -14,7 +14,7 @@ const ApiDoc = () => {
     capteurs: [
       {
         method: "GET",
-        path: "/api/sensors",
+        path: "/api/objects",
         description: "Récupérer tous les capteurs",
         response: `[
   {
@@ -25,46 +25,6 @@ const ApiDoc = () => {
     "location": "Salle A101"
   }
 ]`
-      },
-      {
-        method: "POST",
-        path: "/api/sensors",
-        description: "Créer un nouveau capteur",
-        body: `{
-  "name": "Capteur humidité",
-  "type": "humidity",
-  "location": "Salle B202"
-}`,
-        response: `{
-  "id": "sensor-002",
-  "name": "Capteur humidité",
-  "type": "humidity",
-  "value": null,
-  "location": "Salle B202"
-}`
-      },
-      {
-        method: "PUT",
-        path: "/api/sensors/:id",
-        description: "Mettre à jour un capteur",
-        body: `{
-  "value": 45.2
-}`,
-        response: `{
-  "id": "sensor-001",
-  "name": "Capteur température",
-  "type": "temperature",
-  "value": 45.2,
-  "location": "Salle A101"
-}`
-      },
-      {
-        method: "DELETE",
-        path: "/api/sensors/:id",
-        description: "Supprimer un capteur",
-        response: `{
-  "message": "Capteur supprimé"
-}`
       }
     ],
     evenements: [
@@ -102,44 +62,24 @@ const ApiDoc = () => {
     ],
     actions: [
       {
-        method: "GET",
-        path: "/api/commands",
-        description: "Récupérer toutes les commandes",
-        response: `[
-  {
-    "application": "AppFSR",
-    "device": "Climatiseur",
-    "codeSalle" : "BIO-B102"
-    "action": "SET_TEMP",
-    "value": "23"
-  }
-]`
-      },
-      {
         method: "POST",
         path: "/api/commands",
-        description: "Créer une commande",
+        description: "Envoyer une commande",
         body: `{
-  "application": "Climatisation",
-  "device": "Climatiseur",
-  "action": "éteindre"
+  "application": "Application",
+  "codeSalle": "INFO-A101",
+  "device": "Light",
+  "action": "TURN_OFF / TURN_ON"
 }`,
         response: `{
-  "id": "cmd-002",
-  "application": "Climatisation",
-  "device": "Climatiseur",
-  "action": "éteindre",
-  "status": "PENDING"
-}`
-      },
-      {
-        method: "PUT",
-        path: "/api/commands/:id/execute",
-        description: "Exécuter une commande",
-        response: `{
-  "id": "cmd-002",
-  "status": "EXECUTED",
-  "message": "Commande exécutée"
+            "application": "mobile-app",
+            "device": "Light",
+            "salleId": "65f1a1111111111111111111",
+            "codeSalle": "INFO-A101",
+            "action": "TURN_ON",
+            "status": "PENDING",
+            "_id": "699f582ccc0ad55a5240f284"
+
 }`
       }
     ]

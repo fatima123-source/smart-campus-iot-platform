@@ -1,234 +1,531 @@
-import Command from "../models/Commandes.js";
-import Salle from "../models/Salle.js";
-import Event from "../models/Event.js"; // Ajouter cette ligne
-import mqttClient from "../config/mqttClient.js";
+ /**import mongoose from "mongoose";
+ import Command from "../models/Commandes.js";
+ import Salle from "../models/Salle.js";
+ import mqttClient from "../config/mqttClient.js";
+ import Evenement from "../models/Event.js";
 
-// ✅ CREER COMMANDE (POSTMAN / APP)
-export const createCommand = async (req, res) => {
+
+ const EVENT_ALLOWED_ACTIONS = {
+   temperature_basse: ["TURN_ON", "SET_TEMP", "BOOST", "ECO"],
+   salle_pleine: ["TRIGGER", "TURN_ON"],
+   temperature_elevee: ["TURN_ON", "SET_TEMP", "BOOST", "ECO"],
+   salle_vide: ["TURN_OFF", "STOP"],
+ };
+
+ const toObjectId = (id) => {
+   if (!id) return null;
+   try {
+     return new mongoose.Types.ObjectId(String(id));
+   } catch {
+     return null;
+   }
+ };
+
+ function buildRejectReason({ command, latestEvent }) {
+   const evType = latestEvent?.type || "Aucun événement";
+   const evMsg = latestEvent?.description || latestEvent?.message || "";
+   return `Rejet automatique: action "${command.action}" non conforme au dernier événement "${evType}". ${evMsg}`.trim();
+ }
+
+ // ✅ CREER COMMANDE (POSTMAN / APP)
+ export const createCommand = async (req, res) => {
+   try {
+     const codeRecherche = req.body.codeSalle?.toString().trim();
+
+     let salle = null;
+
+     if (req.body.salleId) {
+       salle = await Salle.findById(req.body.salleId);
+     } else if (codeRecherche) {
+       salle = await Salle.findOne({
+         code: { $regex: `^${codeRecherche}$`, $options: "i" },
+       });
+     }
+
+     if (!salle) {
+       return res.status(404).json({ message: "Salle non trouvée" });
+     }
+
+     const command = await Command.create({
+       ...req.body,
+       salleId: salle._id,
+       codeSalle: salle.code,
+       status: "PENDING",
+     });
+
+     res.status(201).json(command);
+   } catch (error) {
+     console.error("Erreur createCommand:", error);
+     res.status(500).json({ message: error.message });
+   }
+ };
+
+ // ✅ LISTER COMMANDES + INFOS SALLE + DERNIER EVENEMENT (latestEvent)
+ export const getAllCommands = async (req, res) => {
+   try {
+     const commands = await Command.find()
+       .populate("salleId")
+       .sort({ createdAt: -1 })
+       .lean();
+
+     // ✅ EXTRAIRE les salleIds des commandes (robuste)
+     const salleIds = [
+       ...new Set(
+         commands
+           .map((c) => {
+             const sid = c?.salleId?._id ? c.salleId._id : c?.salleId;
+             return sid ? String(sid) : null;
+           })
+           .filter(Boolean)
+       ),
+     ];
+
+     // ✅ LOG PREUVE: si tu vois 1 seul id ici -> toutes commandes même salle
+     console.log("✅ salleIds uniques dans COMMANDS:", salleIds);
+
+     if (salleIds.length === 0) return res.json(commands);
+
+     const salleObjectIds = salleIds.map(toObjectId).filter(Boolean);
+
+     const latestEvents = await Evenement.aggregate([
+       { $match: { salleId: { $in: salleObjectIds } } },
+       { $sort: { timestamp: -1 } },
+       { $group: { _id: "$salleId", latestEvent: { $first: "$$ROOT" } } },
+     ]);
+
+     const latestMap = new Map(
+       latestEvents.map((e) => [String(e._id), e.latestEvent])
+     );
+
+     const enriched = commands.map((c) => {
+       const sid = c?.salleId?._id ? c.salleId._id : c?.salleId;
+       const key = sid ? String(sid) : null;
+
+       return {
+         ...c,
+         latestEvent: key ? latestMap.get(key) || null : null,
+       };
+     });
+
+     res.json(enriched);
+   } catch (error) {
+     console.error("Erreur getAllCommands:", error);
+     res.status(500).json({ message: error.message });
+   }
+ };
+
+ // ✅ EXECUTER COMMANDE + REJET AUTO
+ export const executeCommand = async (req, res) => {
+   try {
+     const command = await Command.findById(req.params.id);
+
+     if (!command) return res.status(404).json({ message: "Commande introuvable" });
+     if (command.status !== "PENDING")
+       return res.status(400).json({ message: "Commande déjà traitée" });
+
+     // ✅ salleId robuste
+     const salleIdObj = toObjectId(command.salleId);
+     if (!salleIdObj) {
+       return res.status(400).json({ message: "salleId invalide sur la commande" });
+     }
+
+     // ✅ Dernier event de CETTE salle
+     const latestEvent = await Evenement.findOne({ salleId: salleIdObj }).sort({
+       timestamp: -1,
+     });
+
+     const allowedActions = latestEvent?.type
+       ? EVENT_ALLOWED_ACTIONS[latestEvent.type]
+       : null;
+
+     if (allowedActions && !allowedActions.includes(command.action)) {
+       command.status = "FAILED";
+       command.reason = buildRejectReason({ command, latestEvent });
+       await command.save();
+
+       return res.json({
+         message: "Commande rejetée automatiquement (non conforme à l’événement)",
+         status: command.status,
+         reason: command.reason,
+         latestEvent,
+       });
+     }
+
+     const topic = `${process.env.MQTT_TOPIC_BASE}/platform/execute`;
+
+     const message = JSON.stringify({
+       commandId: command._id,
+       salle: command.codeSalle,
+       device: command.device,
+       action: command.action,
+       value: command.value ?? null,
+       mode: command.mode ?? null,
+     });
+
+     mqttClient.publish(topic, message, { qos: 1 });
+
+     res.json({ message: "Commande envoyée pour exécution" });
+   } catch (error) {
+     console.error("Erreur executeCommand:", error);
+     res.status(500).json({ message: error.message });
+   }
+ };
+
+ // ✅ REJETER COMMANDE
+ export const rejectCommand = async (req, res) => {
+   try {
+     const command = await Command.findById(req.params.id);
+
+     if (!command) return res.status(404).json({ message: "Commande introuvable" });
+     if (command.status !== "PENDING")
+       return res.status(400).json({ message: "Commande déjà traitée" });
+
+     const reason = (req.body?.reason || "Commande rejetée manuellement").toString().trim();
+
+     command.status = "FAILED";
+     command.reason = reason;
+     await command.save();
+
+     res.json({ message: "Commande rejetée", status: command.status, reason: command.reason });
+   } catch (error) {
+     console.error("Erreur rejectCommand:", error);
+     res.status(500).json({ message: error.message });
+   }
+ };
+ */
+ // backend/src/controllers/commande.controller.js
+
+ // backend/src/controllers/commande.controller.js
+
+ import mongoose from "mongoose";
+ import Command from "../models/Commandes.js";
+ import Salle from "../models/Salle.js";
+ import mqttClient from "../config/mqttClient.js";
+ import Evenement from "../models/Event.js";
+
+ // ==================== HELPERS ====================
+ const toObjectId = (id) => {
+   if (!id) return null;
+   try {
+     return new mongoose.Types.ObjectId(String(id));
+   } catch {
+     return null;
+   }
+ };
+
+ const normalize = (s) => String(s || "").trim().toLowerCase();
+
+ function buildRejectReason({ command, latestEvent }) {
+   const evType = latestEvent?.type || "Aucun événement";
+   const evMsg = latestEvent?.description || latestEvent?.message || "";
+   return `Rejet automatique: action "${command.action}" non conforme au dernier événement "${evType}". ${evMsg}`.trim();
+ }
+
+ // ==================== MAPPING ACTIONNEUR -> CAPTEUR ====================
+ // IMPORTANT: doit matcher les valeurs de command.device (enum)
+ const DEVICE_TO_SENSOR = {
+   // Light -> presence
+   light: "presence",
+   lampe: "presence",
+   lamp: "presence",
+
+   // Climatiseur -> temperature
+   climatiseur: "temperature",
+   clim: "temperature",
+   ac: "temperature",
+   airconditioner: "temperature",
+   heater: "temperature",
+   chauffage: "temperature",
+
+   // Alarme -> smoke (ou presence si tu veux)
+   alarme: "smoke",
+   smoke: "smoke",
+   ventilation: "smoke",
+   fan: "smoke",
+ };
+
+ // ==================== REGLES EVENT -> ACTIONS AUTORISEES ====================
+ const EVENT_ALLOWED_ACTIONS = {
+   // Presence
+   salle_vide: ["TURN_OFF", "STOP"],
+   salle_pleine: ["TURN_ON", "TRIGGER"],
+
+   // Temperature
+   temperature_elevee: ["TURN_ON", "SET_TEMP", "BOOST", "ECO"],
+   temperature_basse: ["TURN_ON", "SET_TEMP", "BOOST", "ECO"],
+
+   // Smoke
+   smoke_detected: ["TRIGGER", "TURN_ON"],
+
+   // Energie
+   surconsommation: ["ECO", "STOP"],
+ };
+
+ // ============================================================
+ // ✅ CREER COMMANDE (POSTMAN / APP)
+ // ============================================================
+ export const createCommand = async (req, res) => {
+   try {
+     const codeRecherche = req.body.codeSalle?.toString().trim();
+
+     let salle = null;
+
+     if (req.body.salleId) {
+       salle = await Salle.findById(req.body.salleId);
+     } else if (codeRecherche) {
+       salle = await Salle.findOne({
+         code: { $regex: `^${codeRecherche}$`, $options: "i" },
+       });
+     }
+
+     if (!salle) {
+       return res.status(404).json({ message: "Salle non trouvée" });
+     }
+
+     const command = await Command.create({
+       ...req.body,
+       salleId: salle._id,
+       codeSalle: salle.code,
+       status: "PENDING",
+     });
+
+     return res.status(201).json(command);
+   } catch (error) {
+     console.error("Erreur createCommand:", error);
+     return res.status(500).json({ message: error.message });
+   }
+ };
+
+ // ============================================================
+ // ✅ LISTER COMMANDES + latestEvent (même salle + capteurType lié au device)
+ // ============================================================
+ export const getAllCommands = async (req, res) => {
+   try {
+     const commands = await Command.find()
+       .populate("salleId")
+       .sort({ createdAt: -1 })
+       .lean();
+
+     if (!commands.length) return res.json([]);
+
+     // 1) Construire les pairs uniques (salleId + capteurType attendu)
+     const pairs = new Map();
+     // key = `${salleId}__${capteurType}` => { salleId:ObjectId, capteurType }
+
+     for (const c of commands) {
+       const sid = c?.salleId?._id ? c.salleId._id : c?.salleId;
+       const salleKey = sid ? String(sid) : null;
+       if (!salleKey) continue;
+
+       const deviceKey = normalize(c.device);
+       const capteurType = DEVICE_TO_SENSOR[deviceKey];
+       if (!capteurType) continue;
+
+       const key = `${salleKey}__${capteurType}`;
+       pairs.set(key, { salleId: toObjectId(salleKey), capteurType });
+     }
+
+     // 2) Charger le dernier event pour chaque pair
+     const latestMap = new Map(); // key => latestEvent
+
+     await Promise.all(
+       Array.from(pairs.entries()).map(async ([key, pair]) => {
+         if (!pair.salleId) return;
+
+         const latestEvent = await Evenement.findOne({
+           salleId: pair.salleId,
+           capteurType: pair.capteurType,
+         })
+           .sort({ timestamp: -1 })
+           .lean();
+
+         latestMap.set(key, latestEvent || null);
+       })
+     );
+
+     // 3) Enrichir
+     const enriched = commands.map((c) => {
+       const sid = c?.salleId?._id ? c.salleId._id : c?.salleId;
+       const salleKey = sid ? String(sid) : null;
+
+       const deviceKey = normalize(c.device);
+       const capteurType = DEVICE_TO_SENSOR[deviceKey];
+
+       const key = salleKey && capteurType ? `${salleKey}__${capteurType}` : null;
+
+       return {
+         ...c,
+         expectedSensorType: capteurType || null,
+         latestEvent: key ? latestMap.get(key) || null : null,
+       };
+     });
+
+     return res.json(enriched);
+   } catch (error) {
+     console.error("Erreur getAllCommands:", error);
+     return res.status(500).json({ message: error.message });
+   }
+ };
+
+ // ============================================================
+ // ✅ EXECUTER COMMANDE + REJET AUTO
+ //    -> dernier event du capteurType lié au device
+ // ============================================================
+ export const executeCommand = async (req, res) => {
+   try {
+     const command = await Command.findById(req.params.id);
+
+     if (!command) return res.status(404).json({ message: "Commande introuvable" });
+     if (command.status !== "PENDING")
+       return res.status(400).json({ message: "Commande déjà traitée" });
+
+     // salleId robuste
+     const salleIdObj = toObjectId(command.salleId);
+     if (!salleIdObj) {
+       return res.status(400).json({ message: "salleId invalide sur la commande" });
+     }
+
+     // 1) capteur concerné par l’actionneur
+     const deviceKey = normalize(command.device);
+     const expectedSensorType = DEVICE_TO_SENSOR[deviceKey];
+
+     if (!expectedSensorType) {
+       command.status = "FAILED";
+       command.reason = `Rejet automatique: aucun capteur associé à l'actionneur "${command.device}".`;
+       await command.save();
+
+       return res.json({
+         message: "Commande rejetée automatiquement",
+         status: command.status,
+         reason: command.reason,
+       });
+     }
+
+     // 2) dernier event de CE capteurType dans CETTE salle
+     const latestEvent = await Evenement.findOne({
+       salleId: salleIdObj,
+       capteurType: expectedSensorType,
+     }).sort({ timestamp: -1 });
+
+     if (!latestEvent) {
+       command.status = "FAILED";
+       command.reason = `Rejet automatique: aucun événement trouvé pour le capteur "${expectedSensorType}" dans cette salle.`;
+       await command.save();
+
+       return res.json({
+         message: "Commande rejetée automatiquement",
+         status: command.status,
+         reason: command.reason,
+       });
+     }
+
+     // 3) Vérifier compatibilité action <-> event.type
+     const allowedActions = EVENT_ALLOWED_ACTIONS[latestEvent.type] || [];
+
+     if (!allowedActions.includes(command.action)) {
+       command.status = "FAILED";
+       command.reason = buildRejectReason({ command, latestEvent });
+       await command.save();
+
+       return res.json({
+         message:
+           "Commande rejetée automatiquement (non conforme à l’événement du capteur concerné)",
+         status: command.status,
+         reason: command.reason,
+         expectedSensorType,
+         latestEvent,
+       });
+     }
+
+     // 4) OK => publish MQTT
+     const topic = `${process.env.MQTT_TOPIC_BASE}/platform/execute`;
+
+     const message = JSON.stringify({
+       commandId: command._id,
+       salle: command.codeSalle,
+       device: command.device,
+       action: command.action,
+       value: command.value ?? null,
+       mode: command.mode ?? null,
+     });
+
+     mqttClient.publish(topic, message, { qos: 1 });
+
+     return res.json({
+       message: "Commande envoyée pour exécution",
+       expectedSensorType,
+       latestEvent,
+     });
+   } catch (error) {
+     console.error("Erreur executeCommand:", error);
+     return res.status(500).json({ message: error.message });
+   }
+ };
+
+ // ============================================================
+ // ✅ REJETER COMMANDE (manuel)
+ // ============================================================
+ export const rejectCommand = async (req, res) => {
+   try {
+     const command = await Command.findById(req.params.id);
+
+     if (!command) return res.status(404).json({ message: "Commande introuvable" });
+     if (command.status !== "PENDING")
+       return res.status(400).json({ message: "Commande déjà traitée" });
+
+     const reason = (req.body?.reason || "Commande rejetée manuellement")
+       .toString()
+       .trim();
+
+     command.status = "FAILED";
+     command.reason = reason;
+     await command.save();
+
+     return res.json({
+       message: "Commande rejetée",
+       status: command.status,
+       reason: command.reason,
+     });
+   } catch (error) {
+     console.error("Erreur rejectCommand:", error);
+     return res.status(500).json({ message: error.message });
+   }
+ };
+
+export const deleteCommand = async (req, res) => {
   try {
-    // 🔍 DEBUG complet du body
-    console.log("BODY exact reçu:", JSON.stringify(req.body));
-    console.log("Type codeSalle:", typeof req.body.codeSalle);
+    const { id } = req.params;
+    console.log("🗑️ Tentative suppression commande ID:", id);
 
-    // On prépare le code recherché (trim + string)
-    const codeRecherche = req.body.codeSalle?.toString().trim();
-    console.log("Code recherché après trim:", JSON.stringify(codeRecherche));
 
-    let salle = null;
-
-    if (req.body.salleId) {
-      // Recherche par ID si fourni
-      console.log("Recherche par salleId:", req.body.salleId);
-      salle = await Salle.findById(req.body.salleId);
-    } else if (codeRecherche) {
-      // 🔍 DEBUG : toutes les salles existantes
-      const toutesSalles = await Salle.find();
-      console.log("Toutes les salles dans la DB:", toutesSalles.map(s => s.code));
-
-      // Recherche par code avec insensible à la casse pour être sûr
-      salle = await Salle.findOne({
-        code: { $regex: `^${codeRecherche}$`, $options: 'i' }
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID de commande invalide"
       });
     }
 
-    console.log("Salle trouvée:", salle);
-
-    if (!salle) {
-      return res.status(404).json({ message: "Salle non trouvée" });
-    }
-
-    const command = await Command.create({
-      ...req.body,
-      salleId: salle._id,
-      codeSalle: salle.code,
-      status: "PENDING"
-    });
-
-    console.log("Commande créée avec succès:", command._id);
-
-    res.status(201).json(command);
-
-  } catch (error) {
-    console.error("Erreur createCommand:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// ✅ LISTER COMMANDES + INFOS SALLE
-export const getAllCommands = async (req, res) => {
-  try {
-    const commands = await Command.find()
-      .populate("salleId")
-      .sort({ createdAt: -1 });
-
-    res.json(commands);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// ✅ EXECUTER COMMANDE (BOUTON INTERFACE)
-export const executeCommand = async (req, res) => {
-  try {
-    const command = await Command.findById(req.params.id);
+    const command = await Command.findByIdAndDelete(id);
 
     if (!command) {
-      return res.status(404).json({ message: "Commande introuvable" });
-    }
-
-    // 🔍 LOGIQUE MÉTIER : Vérifier les événements avant exécution
-    const peutEtreExecutee = await verifierEvenementsSalle(command);
-
-    if (!peutEtreExecutee) {
-      // Si la commande ne peut pas être exécutée, on la rejette automatiquement
-      command.status = "FAILED";
-      command.reason = "Rejet automatique: ne correspond pas aux événements actuels de la salle";
-      command.rejectedAt = new Date();
-      await command.save();
-
-      return res.status(400).json({
-        message: "Commande rejetée automatiquement",
-        reason: command.reason
+      return res.status(404).json({
+        success: false,
+        message: "Commande non trouvée"
       });
     }
 
-    // Si tout est OK, on publie sur MQTT
-    const topic = `${process.env.MQTT_TOPIC_BASE}/platform/execute`;
-
-    const message = JSON.stringify({
-      commandId: command._id,
-      salle: command.codeSalle,
-      device: command.device,
-      action: command.action,
-      value: command.value || null,
-      mode: command.mode || null
-    });
-
-    mqttClient.publish(topic, message, { qos: 1 });
-
-    // Mettre à jour le statut de la commande
-    command.status = "EXECUTED";
-    command.executedAt = new Date();
-    await command.save();
-
-    console.log("📡 Command sent for execution");
+    console.log("✅ Commande supprimée:", id);
 
     res.json({
-      message: "Commande envoyée pour exécution",
-      command
+      success: true,
+      message: "Commande supprimée avec succès"
     });
 
   } catch (error) {
-    console.error("Erreur executeCommand:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// ✅ REJETER COMMANDE MANUELLEMENT (NOUVEAU)
-export const rejectCommand = async (req, res) => {
-  try {
-    const { reason } = req.body;
-    const command = await Command.findById(req.params.id);
-
-    if (!command) {
-      return res.status(404).json({ message: "Commande introuvable" });
-    }
-
-    // Vérifier que la commande est bien en attente
-    if (command.status !== "PENDING") {
-      return res.status(400).json({
-        message: `Impossible de rejeter une commande avec le statut ${command.status}`
-      });
-    }
-
-    // Mettre à jour le statut
-    command.status = "FAILED";
-    command.reason = reason || "Rejet manuel";
-    command.rejectedAt = new Date();
-
-    await command.save();
-
-    console.log(`✅ Commande ${command._id} rejetée: ${command.reason}`);
-
-    res.json({
-      message: "Commande rejetée avec succès",
-      command
+    console.error("❌ Erreur suppression commande:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
-
-  } catch (error) {
-    console.error("Erreur rejectCommand:", error);
-    res.status(500).json({ message: error.message });
   }
 };
-
-// ✅ FONCTION UTILITAIRE : Vérifier les événements de la salle
-async function verifierEvenementsSalle(command) {
-  try {
-    console.log(`🔍 Vérification des événements pour salle: ${command.codeSalle}`);
-
-    // Récupérer les 10 derniers événements de la salle
-    const derniersEvents = await Event.find({
-      salleId: command.salleId
-    })
-    .sort({ timestamp: -1 })
-    .limit(10);
-
-    console.log(`📊 ${derniersEvents.length} événements trouvés`);
-
-    if (derniersEvents.length === 0) {
-      console.log("✅ Aucun événement, commande autorisée");
-      return true;
-    }
-
-    // 📌 RÈGLE 1: Si salle pleine (type "salle_pleine")
-    const sallePleine = derniersEvents.some(e => e.type === "salle_pleine");
-
-    if (sallePleine) {
-      console.log("🚫 SALLE PLEINE détectée");
-
-      // Interdire certaines actions quand la salle est pleine
-      if (command.action === "TURN_ON" || command.action === "BOOST") {
-        console.log("❌ Commande rejetée: action interdite quand salle pleine");
-        return false;
-      }
-    }
-
-    // 📌 RÈGLE 2: Vérifier le capteur de présence
-    const dernierEventPresence = derniersEvents.find(e => e.capteurType === "presence");
-
-    if (dernierEventPresence) {
-      console.log(`👤 Dernière présence: ${dernierEventPresence.valeur} personnes`);
-
-      // Si personne dans la salle, on peut éteindre mais pas allumer
-      if (dernierEventPresence.valeur === 0) {
-        if (command.action === "TURN_ON") {
-          console.log("❌ Commande rejetée: personne dans la salle");
-          return false;
-        }
-      }
-    }
-
-    // 📌 RÈGLE 3: Vérifier la température si commande de climatisation
-    if (command.device === "Climatiseur" && command.action === "SET_TEMP") {
-      const dernierEventTemp = derniersEvents.find(e => e.capteurType === "temperature");
-
-      if (dernierEventTemp) {
-        console.log(`🌡️ Température actuelle: ${dernierEventTemp.valeur}°C`);
-
-        // Empêcher de régler une température trop basse
-        if (command.value < 16) {
-          console.log("❌ Commande rejetée: température trop basse");
-          return false;
-        }
-      }
-    }
-
-    console.log("✅ Commande autorisée par la logique événementielle");
-    return true;
-
-  } catch (error) {
-    console.error("Erreur dans verifierEvenementsSalle:", error);
-    // En cas d'erreur, on autorise par sécurité
-    return true;
-  }
-}

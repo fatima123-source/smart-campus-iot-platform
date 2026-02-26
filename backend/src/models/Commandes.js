@@ -38,12 +38,11 @@ const commandSchema = new mongoose.Schema(
 
     value: Number,
     mode: String,
-    reason: String,      // 👈 Pour stocker la raison du rejet
-    executedAt: Date,    // 👈 Date d'exécution
-    rejectedAt: Date     // 👈 Date de rejet
+    reason: String,
+    executedAt: Date,
   },
   {
-    timestamps: true     // 👈 Gère automatiquement createdAt et updatedAt
+    timestamps: true
   }
 );
 

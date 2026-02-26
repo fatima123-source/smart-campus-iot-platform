@@ -431,3 +431,153 @@
 .btn-secondary:hover {
   background-color: #5a6268;
 }
+
+/* Actions.css - AJOUTS À LA FIN DU FICHIER */
+
+/* ===== ICÔNES POUR LES CARTES STATISTIQUES ===== */
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 10px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeInUp 0.5s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.stat-icon {
+  font-size: 32px;
+  opacity: 0.9;
+  animation: pulse 2s infinite;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Animation pour les lignes du tableau */
+.actions-table tbody tr {
+  transition: all 0.2s ease;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== BOUTON SUPPRESSION ===== */
+.delete-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.delete-btn:hover {
+  background-color: #fee2e2;
+  transform: scale(1.1);
+  color: #dc2626;
+}
+
+.delete-btn:active {
+  transform: scale(0.95);
+}
+
+/* Ajustement pour le conteneur des boutons d'action */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.no-action {
+  color: #9ca3af;
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+/* ===== MODAL SUPPRESSION ===== */
+.modal-small {
+  max-width: 400px;
+}
+
+.modal-text {
+  font-size: 15px;
+  color: #374151;
+  margin: 10px 0 5px;
+  text-align: center;
+}
+
+.modal-warning {
+  font-size: 13px;
+  color: #ef4444;
+  text-align: center;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.btn-delete {
+  padding: 8px 16px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-delete:hover {
+  background-color: #dc2626;
+}
+
+/* Animation pour l'apparition des modals */
+.modal {
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
